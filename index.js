@@ -7,10 +7,19 @@ app.use(cors());
 app.use(express.json());
 
 const db = mysql.createConnection({
-    host: 'SEU_HOST',
-    user: 'SEU_USER',
-    password: 'SUA_SENHA',
-    database: 'railway'
+    host: 'hopper.proxy.rlwy.net',
+    user: 'root',
+    password: 'ttpcqXvFipaxGZIsUzIlPIqhtoJFRCML',
+    database: 'railway',
+    port: 40792
+});
+
+db.connect(err => {
+    if (err) {
+        console.log("Erro DB:", err);
+    } else {
+        console.log("Banco conectado 🔥");
+    }
 });
 
 app.get('/', (req, res) => {
@@ -37,4 +46,4 @@ app.get('/user', (req, res) => {
     });
 });
 
-app.listen(3000, () => console.log("API rodando"));
+app.listen(3000, () => console.log("API rodando 🚀"));
