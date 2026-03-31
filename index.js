@@ -67,3 +67,11 @@ db.connect(err => {
         `);
     }
 });
+app.get('/ativar', (req, res) => {
+    const mac = req.query.mac;
+
+    db.query("UPDATE users SET ativo=1 WHERE mac=?", [mac], (err) => {
+        if (err) return res.json({status:"erro"});
+        res.json({status:"ativado"});
+    });
+});
