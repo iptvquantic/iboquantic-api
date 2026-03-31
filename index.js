@@ -47,3 +47,23 @@ app.get('/user', (req, res) => {
 });
 
 app.listen(3000, () => console.log("API rodando 🚀"));
+db.connect(err => {
+    if (err) {
+        console.log("Erro DB:", err);
+    } else {
+        console.log("Banco conectado 🔥");
+
+        db.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                mac VARCHAR(50) UNIQUE,
+                nome VARCHAR(100),
+                usuario VARCHAR(100),
+                senha VARCHAR(100),
+                dns VARCHAR(255),
+                ativo TINYINT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+    }
+});
