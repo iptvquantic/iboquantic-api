@@ -3,15 +3,13 @@ const mysql = require("mysql2");
 const cors = require("cors");
 
 const app = express();
-
-// CONFIG
 app.use(cors());
 app.use(express.json());
 
-// PORTA CORRETA (Railway usa automaticamente)
+// PORTA (Railway usa automaticamente)
 const PORT = process.env.PORT || 3000;
 
-// CONEXÃO MYSQL
+// 🔥 CONEXÃO MYSQL CORRETA (OBRIGATÓRIO)
 const db = mysql.createConnection({
     host: process.env.MYSQLHOST,
     user: process.env.MYSQLUSER,
@@ -20,71 +18,62 @@ const db = mysql.createConnection({
     port: process.env.MYSQLPORT
 });
 
-// CONECTAR MYSQL
+// 🔥 NÃO DEIXA O SERVIDOR MORRER
 db.connect(err => {
     if (err) {
         console.error("❌ Erro MySQL:", err);
     } else {
-        console.log("✅ MySQL conectado");
+        console.log("✅ MySQL conectado 🚀");
     }
 });
 
-// SERVIR FRONTEND
+// SERVIR PAINEL
 app.use(express.static("public"));
 
-// 🔥 ROTA PRINCIPAL (IMPORTANTE PRO RAILWAY)
+// ROTA PRINCIPAL
 app.get("/", (req, res) => {
     res.send("API IBO QUANTIC ONLINE 🚀");
 });
 
-// 🔥 HEALTHCHECK (RAILWAY USA ISSO)
-app.get("/health", (req, res) => {
-    res.json({ status: "ok" });
-});
-
-// ROTAS API
-
+// LISTAR TODOS
 app.get("/all", (req, res) => {
     db.query("SELECT * FROM users", (err, result) => {
         if (err) {
             console.error(err);
-            return res.status(500).json(err);
+            return res.json([]);
         }
         res.json(result);
     });
 });
 
+// BUSCAR POR MAC
 app.get("/user", (req, res) => {
     const { mac } = req.query;
-
     db.query("SELECT * FROM users WHERE mac=?", [mac], (err, result) => {
-        if (err) return res.status(500).json(err);
-
+        if (err) return res.json({});
         res.json(result[0] || {});
     });
 });
 
+// ATIVAR
 app.get("/ativar", (req, res) => {
     const { mac } = req.query;
-
     db.query("UPDATE users SET ativo=1 WHERE mac=?", [mac], err => {
-        if (err) return res.status(500).json(err);
-
+        if (err) return res.json({ status: "erro" });
         res.json({ status: "ativado" });
     });
 });
 
+// DESATIVAR
 app.get("/desativar", (req, res) => {
     const { mac } = req.query;
-
     db.query("UPDATE users SET ativo=0 WHERE mac=?", [mac], err => {
-        if (err) return res.status(500).json(err);
-
+        if (err) return res.json({ status: "erro" });
         res.json({ status: "desativado" });
     });
 });
 
-// START SERVIDOR
-app.listen(PORT, "0.0.0.0", () => {
+// START
+app.listen(PORT, () => {
     console.log("🚀 Servidor rodando na porta " + PORT);
 });
