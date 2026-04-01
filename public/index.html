@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>IBO QUANTIC PAINEL</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #0d0d0d;
+    color: #fff;
+    text-align: center;
+}
+
+h1 {
+    margin-top: 20px;
+}
+
+input {
+    padding: 10px;
+    width: 250px;
+    margin: 10px;
+    border: none;
+    border-radius: 5px;
+}
+
+button {
+    padding: 10px 15px;
+    border: none;
+    cursor: pointer;
+    margin: 5px;
+    border-radius: 5px;
+}
+
+.add {
+    background: #007bff;
+    color: white;
+}
+
+.on {
+    background: green;
+    color: #fff;
+}
+
+.off {
+    background: red;
+    color: #fff;
+}
+
+table {
+    margin: 20px auto;
+    border-collapse: collapse;
+    width: 90%;
+}
+
+th, td {
+    padding: 10px;
+    border: 1px solid #333;
+}
+</style>
+
+</head>
+<body>
+
+<h1>🚀 PAINEL IBO QUANTIC</h1>
+
+<div>
+    <input type="text" id="mac" placeholder="Digite o MAC">
+    <button class="add" onclick="cadastrar()">Cadastrar</button>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>MAC</th>
+            <th>STATUS</th>
+            <th>AÇÃO</th>
+        </tr>
+    </thead>
+    <tbody id="lista"></tbody>
+</table>
+
+<script>
+
+// 🔥 IMPORTANTE: LOCAL
+const API = "http://localhost:3000";
+
+// CARREGAR LISTA
+function carregar(){
+    fetch(API + "/all")
+    .then(res => res.json())
+    .then(data => {
+
+        let html = "";
+
+        data.forEach(user => {
+            html += `
+            <tr>
+                <td>${user.id}</td>
+                <td>${user.mac}</td>
+                <td>${user.ativo == 1 ? "ATIVO" : "BLOQUEADO"}</td>
+                <td>
+                    <button class="on" onclick="ativar('${user.mac}')">Ativar</button>
+                    <button class="off" onclick="desativar('${user.mac}')">Desativar</button>
+                </td>
+            </tr>
+            `;
+        });
+
+        document.getElementById("lista").innerHTML = html;
+
+    })
+    .catch(() => {
+        alert("Erro ao conectar API");
+    });
+}
+
+// CADASTRAR
+function cadastrar(){
+    const mac = document.getElementById("mac").value;
+
+    if(!mac){
+        alert("Digite um MAC");
+        return;
+    }
+
+    fetch(API + "/add?mac=" + mac)
+    .then(() => {
+        document.getElementById("mac").value = "";
+        carregar();
+    });
+}
+
+// ATIVAR
+function ativar(mac){
+    fetch(API + "/ativar?mac=" + mac)
+    .then(() => carregar());
+}
+
+// DESATIVAR
+function desativar(mac){
+    fetch(API + "/desativar?mac=" + mac)
+    .then(() => carregar());
+}
+
+carregar();
+
+</script>
+
+</body>
+</html>
