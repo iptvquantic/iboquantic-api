@@ -6,10 +6,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// PORTA (Railway)
+// PORTA RAILWAY
 const PORT = process.env.PORT || 3000;
 
-// MYSQL POOL (CORRETO PRA RAILWAY)
+// ✅ POOL (NÃO TRAVA O SERVIDOR)
 const db = mysql.createPool({
     host: process.env.MYSQLHOST,
     user: process.env.MYSQLUSER,
@@ -21,18 +21,15 @@ const db = mysql.createPool({
     queueLimit: 0
 });
 
-// 🔥 ROTA PRINCIPAL (OBRIGATÓRIA)
-app.get("/", (req, res) => {
-    res.status(200).send("API ONLINE 🚀");
-});
-
-// 🔥 HEALTHCHECK (EVITA ERRO NO RAILWAY)
+// 🔥 TESTE DE VIDA (ESSENCIAL)
 app.get("/health", (req, res) => {
-    res.status(200).json({ status: "ok" });
+    res.json({ status: "ok" });
 });
 
-// SERVIR ARQUIVOS (PAINEL)
-app.use(express.static("public"));
+// ROTA PRINCIPAL
+app.get("/", (req, res) => {
+    res.send("API IBO QUANTIC ONLINE 🚀");
+});
 
 // LISTAR TODOS
 app.get("/all", (req, res) => {
@@ -50,7 +47,7 @@ app.get("/user", (req, res) => {
     const { mac } = req.query;
 
     if (!mac) {
-        return res.status(400).json({ erro: "mac não enviado" });
+        return res.status(400).json({ erro: "mac obrigatorio" });
     }
 
     db.query("SELECT * FROM users WHERE mac=?", [mac], (err, result) => {
@@ -62,13 +59,9 @@ app.get("/user", (req, res) => {
     });
 });
 
-// ATIVAR USUÁRIO
+// ATIVAR
 app.get("/ativar", (req, res) => {
     const { mac } = req.query;
-
-    if (!mac) {
-        return res.status(400).json({ erro: "mac não enviado" });
-    }
 
     db.query("UPDATE users SET ativo=1 WHERE mac=?", [mac], err => {
         if (err) {
@@ -79,13 +72,9 @@ app.get("/ativar", (req, res) => {
     });
 });
 
-// DESATIVAR USUÁRIO
+// DESATIVAR
 app.get("/desativar", (req, res) => {
     const { mac } = req.query;
-
-    if (!mac) {
-        return res.status(400).json({ erro: "mac não enviado" });
-    }
 
     db.query("UPDATE users SET ativo=0 WHERE mac=?", [mac], err => {
         if (err) {
@@ -96,7 +85,7 @@ app.get("/desativar", (req, res) => {
     });
 });
 
-// START DO SERVIDOR (CORRIGIDO PRO RAILWAY)
+// START
 app.listen(PORT, "0.0.0.0", () => {
     console.log("🚀 Servidor rodando na porta " + PORT);
 });
