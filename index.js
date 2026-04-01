@@ -6,18 +6,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// SERVIR FRONTEND (PAINEL)
+// 🔥 SERVIR PAINEL (HTML)
 app.use(express.static("public"));
 
-// CONEXÃO MYSQL (RAILWAY)
+// 🔥 CONEXÃO MYSQL (Railway)
 const db = mysql.createConnection({
-    host: "hopper.proxy.rlwy.net",
-    user: "root",
-    password: "ttpcqXvFipaxGZIsUzIlPIqhtoJFRCML",
-    database: "railway",
-    port: 40792
+    host: process.env.MYSQLHOST,
+    user: process.env.MYSQLUSER,
+    password: process.env.MYSQLPASSWORD,
+    database: process.env.MYSQLDATABASE,
+    port: process.env.MYSQLPORT
 });
 
+// 🔥 CONECTAR
 db.connect(err => {
     if (err) {
         console.error("Erro MySQL:", err);
@@ -26,49 +27,70 @@ db.connect(err => {
     }
 });
 
-// ROTA TESTE
+// 🔥 ROTA TESTE
 app.get("/", (req, res) => {
     res.send("API IBO QUANTIC ONLINE 🚀");
 });
 
-// LISTAR TODOS
+// 🔥 LISTAR TODOS
 app.get("/all", (req, res) => {
-    db.query("SELECT * FROM users", (err, result) => {
-        if (err) return res.json(err);
+    db.query("SELECT * FROM usuarios", (err, result) => {
+        if (err) return res.json({ erro: err });
         res.json(result);
     });
 });
 
-// BUSCAR POR MAC
+// 🔥 BUSCAR POR MAC
 app.get("/user", (req, res) => {
-    const { mac } = req.query;
+    const mac = req.query.mac;
 
-    db.query("SELECT * FROM users WHERE mac = ?", [mac], (err, result) => {
-        if (err) return res.json(err);
-        res.json(result[0]);
+    db.query("SELECT * FROM usuarios WHERE mac = ?", [mac], (err, result) => {
+        if (err) return res.json({ erro: err });
+
+        if (result.length > 0) {
+            res.json(result[0]);
+        } else {
+            res.json({ erro: "não encontrado" });
+        }
     });
 });
 
-// ATIVAR
-app.get("/ativar", (req, res) => {
-    const { mac } = req.query;
+// 🔥 CADASTRAR
+app.get("/cadastrar", (req, res) => {
+    const mac = req.query.mac;
 
-    db.query("UPDATE users SET ativo = 1 WHERE mac = ?", [mac], (err) => {
-        if (err) return res.json(err);
+    db.query("INSERT INTO usuarios (mac, ativo) VALUES (?, 0)", [mac], (err) => {
+        if (err) return res.json({ erro: err });
+
+        res.json({ status: "cadastrado" });
+    });
+});
+
+// 🔥 ATIVAR
+app.get("/ativar", (req, res) => {
+    const mac = req.query.mac;
+
+    db.query("UPDATE usuarios SET ativo = 1 WHERE mac = ?", [mac], (err) => {
+        if (err) return res.json({ erro: err });
+
         res.json({ status: "ativado" });
     });
 });
 
-// DESATIVAR
+// 🔥 DESATIVAR
 app.get("/desativar", (req, res) => {
-    const { mac } = req.query;
+    const mac = req.query.mac;
 
-    db.query("UPDATE users SET ativo = 0 WHERE mac = ?", [mac], (err) => {
-        if (err) return res.json(err);
+    db.query("UPDATE usuarios SET ativo = 0 WHERE mac = ?", [mac], (err) => {
+        if (err) return res.json({ erro: err });
+
         res.json({ status: "desativado" });
     });
 });
 
-app.listen(3000, () => {
-    console.log("API rodando na porta 3000 🚀");
+// 🔥 PORTA (IMPORTANTE PRA RAILWAY)
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log("API rodando na porta " + PORT);
 });
