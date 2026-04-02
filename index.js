@@ -149,3 +149,4 @@ app.post("/create", checkJWT, (req, res) => {
 app.listen(PORT, "0.0.0.0", () => {
     console.log("🚀 Servidor rodando na porta " + PORT);
 });
+// force redeploy Thu Apr  2 14:32:45 -03 2026
