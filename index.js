@@ -6,60 +6,66 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
+// PORTA
+const PORT = process.env.PORT || 8080;
 
-// 🔥 CRIA POOL (MELHOR QUE createConnection)
-const db = mysql.createPool({
+// 🔐 MIDDLEWARE DE SEGURANÇA
+const checkAuth = (req, res, next) => {
+    const key = req.headers['x-api-key'];
+
+    if (!key || key !== process.env.API_KEY) {
+        return res.status(401).json({ erro: "Não autorizado" });
+    }
+
+    next();
+};
+
+// 🔥 CONEXÃO MYSQL
+const db = mysql.createConnection({
     host: process.env.MYSQLHOST,
     user: process.env.MYSQLUSER,
     password: process.env.MYSQLPASSWORD,
     database: process.env.MYSQLDATABASE,
-    port: process.env.MYSQLPORT,
-    waitForConnections: true,
-    connectionLimit: 5,
-    queueLimit: 0
+    port: process.env.MYSQLPORT
 });
 
-// 🧠 HEALTHCHECK (RESPONDE SEM DEPENDER DO MYSQL)
-app.get("/health", (req, res) => {
-    res.status(200).send("OK");
+db.connect(err => {
+    if (err) {
+        console.error("❌ Erro MySQL:", err);
+    } else {
+        console.log("✅ MySQL conectado 🚀");
+    }
 });
 
-// 🏠 ROTA PRINCIPAL
+// ROOT
 app.get("/", (req, res) => {
-    res.send("API IBO QUANTIC ONLINE 🚀");
+    res.send("API ONLINE 🚀");
 });
 
-// 📋 LISTAR TODOS
-app.get("/all", (req, res) => {
-    db.query("SELECT * FROM users", (err, result) => {
-        if (err) {
-            console.error("Erro /all:", err);
-            return res.status(500).json([]);
-        }
-        res.json(result);
-    });
+// HEALTHCHECK
+app.get("/health", (req, res) => {
+    res.json({ status: "ok" });
 });
 
-// 🔍 BUSCAR POR MAC
+// 🔓 PÚBLICO (APP IPTV)
 app.get("/user", (req, res) => {
     const { mac } = req.query;
 
-    if (!mac) {
-        return res.status(400).json({ erro: "MAC não informado" });
-    }
-
     db.query("SELECT * FROM users WHERE mac=?", [mac], (err, result) => {
-        if (err) {
-            console.error("Erro /user:", err);
-            return res.status(500).json({});
-        }
+        if (err) return res.json({});
         res.json(result[0] || {});
     });
 });
 
-// ✅ ATIVAR
-app.get("/ativar", (req, res) => {
+// 🔐 PROTEGIDO
+app.get("/all", checkAuth, (req, res) => {
+    db.query("SELECT * FROM users", (err, result) => {
+        if (err) return res.json([]);
+        res.json(result);
+    });
+});
+
+app.get("/ativar", checkAuth, (req, res) => {
     const { mac } = req.query;
 
     db.query("UPDATE users SET ativo=1 WHERE mac=?", [mac], err => {
@@ -68,8 +74,7 @@ app.get("/ativar", (req, res) => {
     });
 });
 
-// ❌ DESATIVAR
-app.get("/desativar", (req, res) => {
+app.get("/desativar", checkAuth, (req, res) => {
     const { mac } = req.query;
 
     db.query("UPDATE users SET ativo=0 WHERE mac=?", [mac], err => {
@@ -78,7 +83,7 @@ app.get("/desativar", (req, res) => {
     });
 });
 
-// 🚀 START (FORÇANDO RAILWAY)
+// 🚀 START
 app.listen(PORT, "0.0.0.0", () => {
     console.log("🚀 Servidor rodando na porta " + PORT);
 });
