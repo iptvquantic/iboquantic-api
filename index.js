@@ -1,6 +1,7 @@
 const express = require("express");
 const mysql = require("mysql2");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
 app.use(cors());
@@ -37,12 +38,15 @@ db.connect(err => {
     }
 });
 
-// ROOT
+// 📁 SERVIR PASTA PUBLIC
+app.use(express.static(path.join(__dirname, "public")));
+
+// 🏠 CARREGAR PAINEL
 app.get("/", (req, res) => {
-    res.send("API ONLINE 🚀");
+    res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// HEALTHCHECK
+// ❤️ HEALTHCHECK
 app.get("/health", (req, res) => {
     res.json({ status: "ok" });
 });
@@ -58,6 +62,8 @@ app.get("/user", (req, res) => {
 });
 
 // 🔐 PROTEGIDO
+
+// LISTAR TODOS
 app.get("/all", checkAuth, (req, res) => {
     db.query("SELECT * FROM users", (err, result) => {
         if (err) return res.json([]);
@@ -65,6 +71,7 @@ app.get("/all", checkAuth, (req, res) => {
     });
 });
 
+// ATIVAR
 app.get("/ativar", checkAuth, (req, res) => {
     const { mac } = req.query;
 
@@ -74,6 +81,7 @@ app.get("/ativar", checkAuth, (req, res) => {
     });
 });
 
+// DESATIVAR
 app.get("/desativar", checkAuth, (req, res) => {
     const { mac } = req.query;
 
@@ -81,6 +89,27 @@ app.get("/desativar", checkAuth, (req, res) => {
         if (err) return res.json({ status: "erro" });
         res.json({ status: "desativado" });
     });
+});
+
+// 🆕 CRIAR USUÁRIO
+app.post("/create", checkAuth, (req, res) => {
+    const { mac, nome, usuario, senha, dns } = req.body;
+
+    if (!mac) {
+        return res.json({ status: "erro", mensagem: "MAC obrigatório" });
+    }
+
+    db.query(
+        "INSERT INTO users (mac, nome, usuario, senha, dns, ativo) VALUES (?, ?, ?, ?, ?, 1)",
+        [mac, nome, usuario, senha, dns],
+        err => {
+            if (err) {
+                console.error(err);
+                return res.json({ status: "erro" });
+            }
+            res.json({ status: "criado" });
+        }
+    );
 });
 
 // 🚀 START
