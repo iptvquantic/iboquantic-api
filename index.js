@@ -123,3 +123,42 @@ app.post("/replace-domain", checkJWT, (req, res) => {
 });
 
 app.listen(PORT, "0.0.0.0", () => console.log("Servidor na porta " + PORT));
+
+// ENDPOINT PARA O APP (formato AppInfoModel)
+app.get("/user-mac", (req, res) => {
+    const { mac } = req.query;
+    if (!mac) return res.json({ success: false });
+    
+    db.query("SELECT * FROM users WHERE mac=?", [mac], (err, result) => {
+        if (err || result.length === 0) {
+            return res.json({ success: false, result: [] });
+        }
+        const u = result[0];
+        
+        // Verifica expiração
+        if (u.expiracao && new Date(u.expiracao+'T00:00:00') < new Date()) {
+            return res.json({ success: false, expired: true, result: [] });
+        }
+        
+        res.json({
+            success: u.ativo == 1,
+            mac_address: u.mac,
+            expiredDate: u.expiracao || "2099-12-31",
+            lock: u.ativo == 1 ? 0 : 1,
+            is_trial: 0,
+            pin_code: "",
+            plan_id: "1",
+            result: u.dns ? [{
+                url: u.dns,
+                username: u.usuario || "",
+                password: u.senha || "",
+                type: "xtream"
+            }] : (u.url ? [{
+                url: u.url,
+                username: "",
+                password: "",
+                type: "m3u8"
+            }] : [])
+        });
+    });
+});
