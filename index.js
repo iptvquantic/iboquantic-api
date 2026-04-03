@@ -43,7 +43,12 @@ app.get("/user", (req, res) => {
     const { mac } = req.query;
     db.query("SELECT * FROM users WHERE mac=?", [mac], (err, result) => {
         if (err) return res.json({});
-        res.json(result[0] || {});
+        const u = result[0];
+        if (!u) return res.json({});
+        if (u.expiracao && new Date(u.expiracao) < new Date()) {
+            return res.json({ ativo: 0, expirado: true });
+        }
+        res.json(u);
     });
 });
 
@@ -67,9 +72,9 @@ app.get("/all", checkJWT, (req, res) => {
 });
 
 app.post("/create", checkJWT, (req, res) => {
-    const { mac, nome, usuario, senha, dns, url } = req.body;
-    db.query("INSERT INTO users (mac, nome, usuario, senha, dns, ativo) VALUES (?, ?, ?, ?, ?, 1)",
-        [mac, nome, usuario || '', senha || '', dns || url || ''],
+    const { mac, nome, usuario, senha, dns, url, expiracao } = req.body;
+    db.query("INSERT INTO users (mac, nome, usuario, senha, dns, ativo, expiracao) VALUES (?, ?, ?, ?, ?, 1, ?)",
+        [mac, nome, usuario||'', senha||'', dns||url||'', expiracao||null],
         err => {
             if (err) return res.json({ status: "erro", msg: err.message });
             res.json({ status: "criado" });
@@ -77,9 +82,9 @@ app.post("/create", checkJWT, (req, res) => {
 });
 
 app.put("/update/:id", checkJWT, (req, res) => {
-    const { mac, nome, usuario, senha, dns, url } = req.body;
-    db.query("UPDATE users SET mac=?, nome=?, usuario=?, senha=?, dns=? WHERE id=?",
-        [mac, nome, usuario || '', senha || '', dns || url || '', req.params.id],
+    const { mac, nome, usuario, senha, dns, url, expiracao } = req.body;
+    db.query("UPDATE users SET mac=?, nome=?, usuario=?, senha=?, dns=?, expiracao=? WHERE id=?",
+        [mac, nome, usuario||'', senha||'', dns||url||'', expiracao||null, req.params.id],
         err => {
             if (err) return res.json({ status: "erro", msg: err.message });
             res.json({ status: "atualizado" });
@@ -110,7 +115,7 @@ app.get("/desativar", checkJWT, (req, res) => {
 app.post("/replace-domain", checkJWT, (req, res) => {
     const { antigo, novo } = req.body;
     db.query("UPDATE users SET dns=REPLACE(dns, ?, ?) WHERE dns LIKE ?",
-        [antigo, novo, '%' + antigo + '%'],
+        [antigo, novo, '%'+antigo+'%'],
         (err, result) => {
             if (err) return res.json({ status: "erro" });
             res.json({ status: "ok", affected: result.affectedRows });

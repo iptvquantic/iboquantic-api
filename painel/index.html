@@ -22,7 +22,7 @@ body{font-family:'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3;min-heig
 .sidebar-footer{padding:12px 8px;border-top:1px solid #30363d}
 .btn-sair{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:#f85149;width:100%;background:none;border:none}
 .btn-sair:hover{background:#f8514922}
-.main{flex:1;display:flex;flex-direction:column}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .topbar{padding:14px 24px;background:#161b22;border-bottom:1px solid #30363d;display:flex;align-items:center;justify-content:space-between}
 .topbar-title{font-size:15px;font-weight:600}
 .content{padding:24px;flex:1;overflow-y:auto}
@@ -35,8 +35,9 @@ body{font-family:'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3;min-heig
 .stat-value.blue{color:#1e90ff}
 .stat-value.green{color:#3fb950}
 .stat-value.red{color:#f85149}
+.stat-value.yellow{color:#d29922}
 .section{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;margin-bottom:20px}
-.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px}
 .section-title{font-size:14px;font-weight:600}
 .btn{padding:7px 14px;border-radius:6px;font-size:13px;cursor:pointer;border:none;font-weight:500;display:inline-flex;align-items:center;gap:6px}
 .btn-primary{background:#1e90ff;color:#fff}
@@ -54,6 +55,7 @@ tr:hover td{background:#21262d33}
 .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:500}
 .badge-green{background:#3fb95022;color:#3fb950;border:1px solid #3fb95044}
 .badge-red{background:#f8514922;color:#f85149;border:1px solid #f8514944}
+.badge-yellow{background:#d2992222;color:#d29922;border:1px solid #d2992244}
 .mac{font-family:monospace;font-size:12px;color:#8b949e}
 .form-group{margin-bottom:18px}
 .form-label{display:flex;align-items:center;gap:6px;font-size:12px;color:#8b949e;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:500}
@@ -75,8 +77,10 @@ tr:hover td{background:#21262d33}
 .alert-banner{background:#fff3cd22;border:1px solid #d29922;border-radius:6px;padding:10px 16px;font-size:13px;color:#d29922;margin-bottom:20px}
 .msg-ok{color:#3fb950;font-size:13px;margin-top:10px}
 .msg-err{color:#f85149;font-size:13px;margin-top:10px}
+.expiry-warning{color:#d29922;font-size:11px}
+.expiry-expired{color:#f85149;font-size:11px}
+.expiry-ok{color:#3fb950;font-size:11px}
 @media(max-width:768px){.stats-grid{grid-template-columns:repeat(2,1fr)}.sidebar{width:180px}.form-row{grid-template-columns:1fr}}
-@media(max-width:480px){.layout{flex-direction:column}.sidebar{width:100%;flex-direction:row;flex-wrap:wrap}.stats-grid{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -90,7 +94,7 @@ tr:hover td{background:#21262d33}
     <div class="login-sub">Sistema IPTV Premium</div>
     <div class="acesso-restrito">ACESSO RESTRITO</div>
     <div class="form-group" style="text-align:left">
-      <input class="form-input" type="text" id="login-email" placeholder="Email" value="admin@iptv.com" style="margin-bottom:10px"/>
+      <input class="form-input" type="text" id="login-email" placeholder="Email" style="margin-bottom:10px"/>
       <input class="form-input" type="password" id="login-pass" placeholder="Senha"/>
     </div>
     <button class="btn btn-primary" style="width:100%;padding:11px;font-size:14px;justify-content:center" onclick="doLogin()">ENTRAR</button>
@@ -115,7 +119,7 @@ tr:hover td{background:#21262d33}
         <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>Atualizar Domínio
       </div>
     </div>
-    <div class="user-badge">SEU ID: <span>1</span></div>
+    <div class="user-badge">ADMIN: <span id="admin-email">-</span></div>
     <div class="sidebar-footer">
       <button class="btn-sair" onclick="doLogout()">
         <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>Sair
@@ -136,19 +140,19 @@ tr:hover td{background:#21262d33}
           <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value blue" id="stat-total">0</div></div>
           <div class="stat-card"><div class="stat-label">Ativos</div><div class="stat-value green" id="stat-ativos">0</div></div>
           <div class="stat-card"><div class="stat-label">Inativos</div><div class="stat-value red" id="stat-inativos">0</div></div>
-          <div class="stat-card"><div class="stat-label">Xtream / M3U8</div><div class="stat-value" id="stat-tipos">0/0</div></div>
+          <div class="stat-card"><div class="stat-label">Expirados</div><div class="stat-value yellow" id="stat-expirados">0</div></div>
         </div>
         <div class="section">
           <div class="section-header">
             <div class="section-title">Meus Usuários</div>
-            <div style="display:flex;gap:8px;align-items:center">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
               <input class="search-box" type="text" placeholder="Pesquise por MAC, Nome..." id="search-input" oninput="filterUsers()"/>
               <button class="btn btn-success" onclick="showPage('adicionar',null)">+ Novo</button>
             </div>
           </div>
           <div style="overflow-x:auto">
           <table>
-            <thead><tr><th>ID</th><th>MAC</th><th>Usuário</th><th>Nome</th><th>DNS</th><th>Status</th><th>Editar</th><th>Excluir</th></tr></thead>
+            <thead><tr><th>ID</th><th>MAC</th><th>Nome</th><th>DNS</th><th>Expiração</th><th>Status</th><th>Editar</th><th>Excluir</th></tr></thead>
             <tbody id="users-tbody"><tr><td colspan="8" style="text-align:center;color:#8b949e;padding:30px">Carregando...</td></tr></tbody>
           </table>
           </div>
@@ -158,16 +162,10 @@ tr:hover td{background:#21262d33}
       <div id="page-adicionar" class="page">
         <div class="section">
           <div class="section-header"><div class="section-title">ADICIONAR USUÁRIO</div></div>
+          <div class="form-group"><div class="form-label">MAC</div><input class="form-input" type="text" id="add-mac" placeholder="Ex: D8:57:49:21:BB:43"/></div>
+          <div class="form-group"><div class="form-label">NOME DO CLIENTE</div><input class="form-input" type="text" id="add-nome" placeholder="Nome do cliente"/></div>
           <div class="form-group">
-            <div class="form-label">MAC</div>
-            <input class="form-input" type="text" id="add-mac" placeholder="Ex: D8:57:49:21:BB:43"/>
-          </div>
-          <div class="form-group">
-            <div class="form-label">NOME DO CLIENTE</div>
-            <input class="form-input" type="text" id="add-nome" placeholder="Nome do cliente"/>
-          </div>
-          <div class="form-group">
-            <div class="form-label">SELECIONE O MODO DE LOGIN</div>
+            <div class="form-label">MODO DE LOGIN</div>
             <select class="form-select" id="add-modo" onchange="toggleModo('add')">
               <option value="xtream">Xtream Codes (DNS)</option>
               <option value="m3u8">Lista M3U8 (LINK)</option>
@@ -183,15 +181,13 @@ tr:hover td{background:#21262d33}
             </div>
           </div>
           <div id="add-xtream-section">
-            <div class="form-group">
-              <div class="form-label">DNS</div>
-              <input class="form-input" type="text" id="add-dns" placeholder="http://servidor.com"/>
-            </div>
+            <div class="form-group"><div class="form-label">DNS</div><input class="form-input" type="text" id="add-dns" placeholder="http://servidor.com"/></div>
             <div class="form-row">
               <div class="form-group"><div class="form-label">USUÁRIO</div><input class="form-input" type="text" id="add-usuario"/></div>
               <div class="form-group"><div class="form-label">SENHA</div><input class="form-input" type="text" id="add-senha"/></div>
             </div>
           </div>
+          <div class="form-group"><div class="form-label">DATA DE EXPIRAÇÃO (opcional)</div><input class="form-input" type="date" id="add-expiracao"/></div>
           <button class="btn btn-success" onclick="criarUsuario()" style="padding:10px 24px;font-size:14px">✓ CRIAR</button>
           <div id="add-msg"></div>
         </div>
@@ -232,6 +228,7 @@ tr:hover td{background:#21262d33}
           <div id="edit-m3u8-section" style="display:none">
             <div class="form-group"><div class="form-label">URL M3U8</div><input class="form-input" type="text" id="edit-url"/></div>
           </div>
+          <div class="form-group"><div class="form-label">DATA DE EXPIRAÇÃO</div><input class="form-input" type="date" id="edit-expiracao"/></div>
           <div style="display:flex;gap:10px">
             <button class="btn btn-success" onclick="atualizarUsuario()" style="padding:10px 24px">✓ ATUALIZAR</button>
             <button class="btn btn-outline" onclick="showPage('dashboard',null)" style="padding:10px 16px">Cancelar</button>
@@ -264,11 +261,28 @@ async function doLogin(){
   try{
     const r=await fetch(API+'/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,senha})});
     const d=await r.json();
-    if(d.token){TOKEN=d.token;localStorage.setItem('ibo_token',TOKEN);$('login-screen').style.display='none';$('painel').style.display='flex';loadUsers();}
-    else{$('login-error').style.display='block';$('login-error').textContent=d.erro||'Erro ao fazer login';}
-  }catch(e){$('login-error').style.display='block';$('login-error').textContent='Erro de conexão com a API';}
+    if(d.token){
+      TOKEN=d.token;
+      localStorage.setItem('ibo_token',TOKEN);
+      const payload=JSON.parse(atob(TOKEN.split('.')[1]));
+      localStorage.setItem('ibo_email',payload.email);
+      $('login-screen').style.display='none';
+      $('painel').style.display='flex';
+      $('admin-email').textContent=payload.email;
+      loadUsers();
+    }else{$('login-error').style.display='block';$('login-error').textContent=d.erro||'Erro ao fazer login';}
+  }catch(e){$('login-error').style.display='block';$('login-error').textContent='Erro de conexão';}
 }
 function doLogout(){TOKEN='';localStorage.removeItem('ibo_token');$('login-screen').style.display='flex';$('painel').style.display='none';}
+function expiracaoStatus(exp){
+  if(!exp)return{label:'Sem limite',cls:'expiry-ok'};
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const d=new Date(exp+'T00:00:00');
+  const diff=Math.ceil((d-hoje)/(1000*60*60*24));
+  if(diff<0)return{label:'Expirado',cls:'expiry-expired'};
+  if(diff<=7)return{label:'Expira em '+diff+'d',cls:'expiry-warning'};
+  return{label:exp,cls:'expiry-ok'};
+}
 async function loadUsers(){
   try{
     const r=await fetch(API+'/all',{headers:{'authorization':TOKEN}});
@@ -277,24 +291,29 @@ async function loadUsers(){
   }catch(e){$('users-tbody').innerHTML='<tr><td colspan="8" style="text-align:center;color:#f85149;padding:20px">Erro ao carregar</td></tr>';}
 }
 function updateStats(users){
+  const hoje=new Date();hoje.setHours(0,0,0,0);
   const ativos=users.filter(u=>u.ativo==1).length;
+  const expirados=users.filter(u=>u.expiracao&&new Date(u.expiracao+'T00:00:00')<hoje).length;
   $('stat-total').textContent=users.length;
   $('stat-ativos').textContent=ativos;
   $('stat-inativos').textContent=users.length-ativos;
-  $('stat-tipos').textContent=users.filter(u=>u.dns).length+'/'+users.filter(u=>u.url).length;
+  $('stat-expirados').textContent=expirados;
 }
 function renderUsers(users){
   if(!users.length){$('users-tbody').innerHTML='<tr><td colspan="8" style="text-align:center;color:#8b949e;padding:30px">Nenhum usuário</td></tr>';return;}
-  $('users-tbody').innerHTML=users.map(u=>`<tr>
-    <td style="color:#8b949e">${u.id}</td>
-    <td><span class="mac">${u.mac||''}</span></td>
-    <td style="color:#8b949e">${u.usuario||''}</td>
-    <td>${u.nome||''}</td>
-    <td style="color:#1e90ff;font-size:12px">${u.dns||u.url||''}</td>
-    <td><span class="badge ${u.ativo?'badge-green':'badge-red'}">${u.ativo?'Ativo':'Inativo'}</span></td>
-    <td><button class="btn-edit" onclick="editUser(${u.id})">Editar</button></td>
-    <td><button class="btn btn-danger" onclick="deleteUser(${u.id},'${u.mac}')">Excluir</button></td>
-  </tr>`).join('');
+  $('users-tbody').innerHTML=users.map(u=>{
+    const exp=expiracaoStatus(u.expiracao);
+    return`<tr>
+      <td style="color:#8b949e">${u.id}</td>
+      <td><span class="mac">${u.mac||''}</span></td>
+      <td>${u.nome||''}</td>
+      <td style="color:#1e90ff;font-size:12px">${u.dns||u.url||''}</td>
+      <td><span class="${exp.cls}">${exp.label}</span></td>
+      <td><span class="badge ${u.ativo?'badge-green':'badge-red'}">${u.ativo?'Ativo':'Inativo'}</span></td>
+      <td><button class="btn-edit" onclick="editUser(${u.id})">Editar</button></td>
+      <td><button class="btn btn-danger" onclick="deleteUser(${u.id},'${u.mac}')">Excluir</button></td>
+    </tr>`;
+  }).join('');
 }
 function filterUsers(){
   const q=$('search-input').value.toLowerCase();
@@ -319,7 +338,8 @@ async function criarUsuario(){
   const nome=$('add-nome').value.trim();
   if(!mac||!nome){setMsg('add-msg','MAC e Nome obrigatórios','err');return;}
   const modo=$('add-modo').value;
-  const body=modo==='m3u8'?{mac,nome,url:$('add-m3u8').value.trim()}:{mac,nome,dns:$('add-dns').value.trim(),usuario:$('add-usuario').value.trim(),senha:$('add-senha').value.trim()};
+  const exp=$('add-expiracao').value||null;
+  const body=modo==='m3u8'?{mac,nome,url:$('add-m3u8').value.trim(),expiracao:exp}:{mac,nome,dns:$('add-dns').value.trim(),usuario:$('add-usuario').value.trim(),senha:$('add-senha').value.trim(),expiracao:exp};
   try{
     const r=await fetch(API+'/create',{method:'POST',headers:{'Content-Type':'application/json','authorization':TOKEN},body:JSON.stringify(body)});
     const d=await r.json();
@@ -331,13 +351,15 @@ function editUser(id){
   const u=allUsers.find(x=>x.id===id);if(!u)return;
   $('edit-id').value=u.id;$('edit-mac').value=u.mac||'';$('edit-nome').value=u.nome||'';
   $('edit-dns').value=u.dns||'';$('edit-usuario').value=u.usuario||'';$('edit-senha').value=u.senha||'';$('edit-url').value=u.url||'';
+  $('edit-expiracao').value=u.expiracao?u.expiracao.split('T')[0]:'';
   $('edit-modo').value=u.url?'m3u8':'xtream';toggleModo('edit');
   showPage('editar',null);
 }
 async function atualizarUsuario(){
   const id=$('edit-id').value;
   const modo=$('edit-modo').value;
-  const body=modo==='m3u8'?{mac:$('edit-mac').value,nome:$('edit-nome').value,url:$('edit-url').value}:{mac:$('edit-mac').value,nome:$('edit-nome').value,dns:$('edit-dns').value,usuario:$('edit-usuario').value,senha:$('edit-senha').value};
+  const exp=$('edit-expiracao').value||null;
+  const body=modo==='m3u8'?{mac:$('edit-mac').value,nome:$('edit-nome').value,url:$('edit-url').value,expiracao:exp}:{mac:$('edit-mac').value,nome:$('edit-nome').value,dns:$('edit-dns').value,usuario:$('edit-usuario').value,senha:$('edit-senha').value,expiracao:exp};
   try{
     const r=await fetch(API+'/update/'+id,{method:'PUT',headers:{'Content-Type':'application/json','authorization':TOKEN},body:JSON.stringify(body)});
     const d=await r.json();
@@ -366,7 +388,13 @@ async function atualizarDominio(){
   }catch(e){setMsg('domain-msg','Erro de conexão','err');}
 }
 function setMsg(id,txt,type){$(id).textContent=txt;$(id).className=type==='ok'?'msg-ok':'msg-err';}
-if(TOKEN){$('login-screen').style.display='none';$('painel').style.display='flex';loadUsers();}
+if(TOKEN){
+  $('login-screen').style.display='none';
+  $('painel').style.display='flex';
+  const email=localStorage.getItem('ibo_email')||'';
+  $('admin-email').textContent=email;
+  loadUsers();
+}
 </script>
 </body>
 </html>
