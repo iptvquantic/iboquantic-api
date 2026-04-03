@@ -162,3 +162,8 @@ app.get("/user-mac", (req, res) => {
         });
     });
 });
+
+app.get("/note", (req, res) => res.json({ note: "", show: false }));
+app.get("/update-check", (req, res) => res.json({ update: false, version: "2.3" }));
+app.get("/qrcode", (req, res) => res.json({ qr: "" }));
+app.post("/add", (req, res) => res.json({ status: "ok" }));
