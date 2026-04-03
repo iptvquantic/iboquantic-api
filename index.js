@@ -1,5 +1,3 @@
-
-
 const express = require("express");
 const mysql = require("mysql2");
 const cors = require("cors");
@@ -12,23 +10,9 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 8080;
 
-// 🔐 MIDDLEWARE API KEY (LEGADO)
-const checkApiKey = (req, res, next) => {
-    const key = req.headers['x-api-key'];
-    if (!key || key !== process.env.API_KEY) {
-        return res.status(401).json({ erro: "Não autorizado" });
-    }
-    next();
-};
-
-// 🔐 MIDDLEWARE JWT
 const checkJWT = (req, res, next) => {
     const token = req.headers['authorization'];
-
-    if (!token) {
-        return res.status(401).json({ erro: "Token não enviado" });
-    }
-
+    if (!token) return res.status(401).json({ erro: "Token não enviado" });
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded;
@@ -38,7 +22,6 @@ const checkJWT = (req, res, next) => {
     }
 };
 
-// 🔥 CONEXÃO MYSQL
 const db = mysql.createConnection({
     host: process.env.MYSQLHOST,
     user: process.env.MYSQLUSER,
@@ -48,65 +31,33 @@ const db = mysql.createConnection({
 });
 
 db.connect(err => {
-    if (err) {
-        console.error("❌ Erro MySQL:", err);
-    } else {
-        console.log("✅ MySQL conectado 🚀");
-    }
+    if (err) console.error("Erro MySQL:", err);
+    else console.log("MySQL conectado");
 });
 
-// DEBUG
-console.log("HOST:", process.env.MYSQLHOST);
-console.log("DB:", process.env.MYSQLDATABASE);
+app.get("/", (req, res) => res.send("IBOQUANTIC API ONLINE"));
+app.get("/health", (req, res) => res.json({ status: "ok" }));
 
-// ROOT
-app.get("/", (req, res) => {
-    res.send("API ONLINE 🚀");
-});
-
-// HEALTH
-app.get("/health", (req, res) => {
-    res.json({ status: "ok" });
-});
-
-// 🔓 APP IPTV (PÚBLICO)
 app.get("/user", (req, res) => {
     const { mac } = req.query;
-
     db.query("SELECT * FROM users WHERE mac=?", [mac], (err, result) => {
         if (err) return res.json({});
         res.json(result[0] || {});
     });
 });
 
-// 🔐 LOGIN ADMIN (NOVO)
 app.post("/login", (req, res) => {
     const { email, senha } = req.body;
-
     db.query("SELECT * FROM admins WHERE email=?", [email], async (err, result) => {
-        if (err || result.length === 0) {
-            return res.status(401).json({ erro: "Usuário não encontrado" });
-        }
-
+        if (err || result.length === 0) return res.status(401).json({ erro: "Usuário não encontrado" });
         const admin = result[0];
-
         const senhaValida = await bcrypt.compare(senha, admin.senha);
-
-        if (!senhaValida) {
-            return res.status(401).json({ erro: "Senha inválida" });
-        }
-
-        const token = jwt.sign(
-            { id: admin.id, email: admin.email },
-            process.env.JWT_SECRET,
-            { expiresIn: "7d" }
-        );
-
+        if (!senhaValida) return res.status(401).json({ erro: "Senha inválida" });
+        const token = jwt.sign({ id: admin.id, email: admin.email }, process.env.JWT_SECRET, { expiresIn: "7d" });
         res.json({ token });
     });
 });
 
-// 🔐 PROTEGIDO COM JWT
 app.get("/all", checkJWT, (req, res) => {
     db.query("SELECT * FROM users", (err, result) => {
         if (err) return res.json([]);
@@ -114,39 +65,55 @@ app.get("/all", checkJWT, (req, res) => {
     });
 });
 
-app.get("/ativar", checkJWT, (req, res) => {
-    const { mac } = req.query;
+app.post("/create", checkJWT, (req, res) => {
+    const { mac, nome, usuario, senha, dns, url } = req.body;
+    db.query("INSERT INTO users (mac, nome, usuario, senha, dns, ativo) VALUES (?, ?, ?, ?, ?, 1)",
+        [mac, nome, usuario || '', senha || '', dns || url || ''],
+        err => {
+            if (err) return res.json({ status: "erro", msg: err.message });
+            res.json({ status: "criado" });
+        });
+});
 
-    db.query("UPDATE users SET ativo=1 WHERE mac=?", [mac], err => {
+app.put("/update/:id", checkJWT, (req, res) => {
+    const { mac, nome, usuario, senha, dns, url } = req.body;
+    db.query("UPDATE users SET mac=?, nome=?, usuario=?, senha=?, dns=? WHERE id=?",
+        [mac, nome, usuario || '', senha || '', dns || url || '', req.params.id],
+        err => {
+            if (err) return res.json({ status: "erro", msg: err.message });
+            res.json({ status: "atualizado" });
+        });
+});
+
+app.delete("/delete/:id", checkJWT, (req, res) => {
+    db.query("DELETE FROM users WHERE id=?", [req.params.id], err => {
+        if (err) return res.json({ status: "erro" });
+        res.json({ status: "deletado" });
+    });
+});
+
+app.get("/ativar", checkJWT, (req, res) => {
+    db.query("UPDATE users SET ativo=1 WHERE mac=?", [req.query.mac], err => {
         if (err) return res.json({ status: "erro" });
         res.json({ status: "ativado" });
     });
 });
 
 app.get("/desativar", checkJWT, (req, res) => {
-    const { mac } = req.query;
-
-    db.query("UPDATE users SET ativo=0 WHERE mac=?", [mac], err => {
+    db.query("UPDATE users SET ativo=0 WHERE mac=?", [req.query.mac], err => {
         if (err) return res.json({ status: "erro" });
         res.json({ status: "desativado" });
     });
 });
 
-app.post("/create", checkJWT, (req, res) => {
-    const { mac, nome, usuario, senha, dns } = req.body;
-
-    db.query(
-        "INSERT INTO users (mac, nome, usuario, senha, dns, ativo) VALUES (?, ?, ?, ?, ?, 1)",
-        [mac, nome, usuario, senha, dns],
-        err => {
+app.post("/replace-domain", checkJWT, (req, res) => {
+    const { antigo, novo } = req.body;
+    db.query("UPDATE users SET dns=REPLACE(dns, ?, ?) WHERE dns LIKE ?",
+        [antigo, novo, '%' + antigo + '%'],
+        (err, result) => {
             if (err) return res.json({ status: "erro" });
-            res.json({ status: "criado" });
-        }
-    );
+            res.json({ status: "ok", affected: result.affectedRows });
+        });
 });
 
-// 🚀 START
-app.listen(PORT, "0.0.0.0", () => {
-    console.log("🚀 Servidor rodando na porta " + PORT);
-});
-// force redeploy Thu Apr  2 14:32:45 -03 2026
+app.listen(PORT, "0.0.0.0", () => console.log("Servidor na porta " + PORT));
