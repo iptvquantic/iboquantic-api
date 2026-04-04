@@ -126,7 +126,21 @@ app.listen(PORT, "0.0.0.0", () => console.log("Servidor na porta " + PORT));
 
 // ENDPOINT PARA O APP (formato AppInfoModel)
 app.get("/user-mac", (req, res) => {
-    const { mac } = req.query;
+    let deviceId = req.query.mac || req.query.app_device_id || '';
+    
+    // decodifica base64 se necessario
+    try {
+        const decoded = Buffer.from(deviceId, 'base64').toString('utf8');
+        if (decoded && decoded.length > 3) deviceId = decoded;
+    } catch(e) {}
+    
+    // tenta extrair app_device_id do JSON
+    try {
+        const parsed = JSON.parse(deviceId);
+        if (parsed.app_device_id) deviceId = parsed.app_device_id;
+    } catch(e) {}
+
+    const mac = deviceId.trim();
     if (!mac) return res.json({ success: false });
     
     db.query("SELECT * FROM users WHERE mac=?", [mac], (err, result) => {
@@ -167,3 +181,35 @@ app.get("/note", (req, res) => res.json({ note: "", show: false }));
 app.get("/update-check", (req, res) => res.json({ update: false, version: "2.3" }));
 app.get("/qrcode", (req, res) => res.json({ qr: "" }));
 app.post("/add", (req, res) => res.json({ status: "ok" }));
+
+// ENDPOINT POST para o app (Volley envia POST com {"data": "base64"})
+app.post("/user-mac", (req, res) => {
+    let deviceId = '';
+    try {
+        const data = req.body.data || '';
+        const decoded = Buffer.from(data, 'base64').toString('utf8');
+        const parsed = JSON.parse(decoded);
+        deviceId = parsed.app_device_id || '';
+    } catch(e) {
+        deviceId = req.body.mac || req.body.app_device_id || '';
+    }
+    const mac = deviceId.trim();
+    if (!mac) return res.json({ success: false, result: [] });
+    db.query("SELECT * FROM users WHERE mac=?", [mac], (err, result) => {
+        if (err || result.length === 0) return res.json({ success: false, result: [] });
+        const u = result[0];
+        if (u.expiracao && new Date(u.expiracao+'T00:00:00') < new Date()) {
+            return res.json({ success: false, expired: true, result: [] });
+        }
+        res.json({
+            success: u.ativo == 1,
+            mac_address: u.mac,
+            expiredDate: u.expiracao || "2099-12-31",
+            lock: u.ativo == 1 ? 0 : 1,
+            is_trial: 0,
+            pin_code: "",
+            plan_id: "1",
+            result: u.dns ? [{url: u.dns, username: u.usuario||"", password: u.senha||"", type: "xtream"}] : (u.url ? [{url: u.url, username: "", password: "", type: "m3u8"}] : [])
+        });
+    });
+});
