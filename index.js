@@ -9,6 +9,13 @@ app.use(cors());
 app.use(express.static("painel"));
 app.use(express.json());
 
+// LOG todas requisicoes
+app.use((req, res, next) => {
+    console.log("REQUEST:", req.method, req.path, JSON.stringify(req.body), JSON.stringify(req.query));
+    next();
+});
+
+
 const PORT = process.env.PORT || 8080;
 
 const checkJWT = (req, res, next) => {
