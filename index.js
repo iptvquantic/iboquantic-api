@@ -213,3 +213,9 @@ app.post("/user-mac", (req, res) => {
         });
     });
 });
+
+// LOG de todas as requisições
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.path} - Body: ${JSON.stringify(req.body)} - Query: ${JSON.stringify(req.query)}`);
+    next();
+});
