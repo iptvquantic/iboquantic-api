@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IBO QUANTIC</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e1a;color:#fff;font-family:'Segoe UI',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.container{text-align:center;padding:40px 20px;max-width:600px;width:100%}
+.logo{margin-bottom:30px}
+.logo-icon{width:80px;height:80px;background:linear-gradient(135deg,#00c8ff,#0066ff);border-radius:20px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px}
+.logo-icon svg{width:44px;height:44px;fill:white}
+.logo-name{font-size:32px;font-weight:800;letter-spacing:2px;background:linear-gradient(135deg,#00c8ff,#0066ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-sub{font-size:13px;color:#8b949e;margin-top:4px}
+.loader{width:60px;height:60px;border:4px solid #1e90ff33;border-top:4px solid #1e90ff;border-radius:50%;animation:spin 1s linear infinite;margin:30px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.status{font-size:16px;color:#8b949e;margin-bottom:20px}
+.mac-box{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;margin:20px 0}
+.mac-label{font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.mac-value{font-size:20px;font-weight:700;color:#1e90ff;font-family:monospace;word-break:break-all}
+.msg-aguardando{background:#1e90ff11;border:1px solid #1e90ff33;border-radius:8px;padding:16px;margin-top:20px;font-size:14px;color:#8b949e;line-height:1.6}
+.msg-aguardando span{color:#1e90ff;font-weight:600}
+.btn-retry{background:#1e90ff;color:#fff;border:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin-top:20px;letter-spacing:1px}
+.btn-retry:hover{background:#1a7de8}
+.success-icon{font-size:60px;margin-bottom:20px}
+.error-box{background:#f8514911;border:1px solid #f8514933;border-radius:8px;padding:16px;margin-top:20px;font-size:14px;color:#f85149}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    </div>
+    <div class="logo-name">IBO QUANTIC</div>
+    <div class="logo-sub">Sistema IPTV Premium</div>
+  </div>
+
+  <div id="screen-loading">
+    <div class="loader"></div>
+    <div class="status">Verificando dispositivo...</div>
+  </div>
+
+  <div id="screen-not-registered" style="display:none">
+    <div class="mac-box">
+      <div class="mac-label">Endereço MAC</div>
+      <div class="mac-value" id="display-mac">-</div>
+      <div class="mac-label" style="margin-top:16px">Chave do Dispositivo</div>
+      <div class="mac-value" id="display-key">-</div>
+    </div>
+    <div class="msg-aguardando">
+      Envie o <span>Endereço MAC</span> ao seu fornecedor para ativar o dispositivo.<br><br>
+      Após ativação, clique em <span>Tentar Novamente</span>.
+    </div>
+    <button class="btn-retry" onclick="checkDevice()">Tentar Novamente</button>
+  </div>
+
+  <div id="screen-activated" style="display:none">
+    <div class="success-icon">✅</div>
+    <div class="status" style="color:#3fb950;font-size:20px;font-weight:700">Dispositivo Ativado!</div>
+    <div class="status" style="margin-top:8px">Carregando sua lista...</div>
+    <div class="loader"></div>
+  </div>
+
+  <div id="screen-expired" style="display:none">
+    <div class="success-icon">⏰</div>
+    <div class="error-box">Sua assinatura expirou. Entre em contato com seu fornecedor.</div>
+    <div class="mac-box" style="margin-top:20px">
+      <div class="mac-label">Endereço MAC</div>
+      <div class="mac-value" id="display-mac-expired">-</div>
+    </div>
+  </div>
+
+  <div id="screen-error" style="display:none">
+    <div class="error-box">Erro de conexão. Verifique sua internet.</div>
+    <button class="btn-retry" onclick="checkDevice()">Tentar Novamente</button>
+  </div>
+</div>
+
+<script>
+const API = 'https://iboquantic-api-production.up.railway.app';
+let deviceId = '';
+
+function showScreen(name) {
+  ['loading','not-registered','activated','expired','error'].forEach(s => {
+    document.getElementById('screen-'+s).style.display = 'none';
+  });
+  document.getElementById('screen-'+name).style.display = 'block';
+}
+
+function getDeviceId() {
+  // Tenta pegar do Android via interface JS
+  if (window.Android && window.Android.getDeviceId) {
+    return window.Android.getDeviceId();
+  }
+  // Fallback: gera ID baseado no user agent
+  let id = localStorage.getItem('ibo_device_id');
+  if (!id) {
+    id = Math.random().toString(36).substr(2,16) + Date.now().toString(36);
+    localStorage.setItem('ibo_device_id', id);
+  }
+  return id;
+}
+
+async function checkDevice() {
+  showScreen('loading');
+  deviceId = getDeviceId();
+
+  document.getElementById('display-mac').textContent = deviceId;
+  document.getElementById('display-key').textContent = deviceId;
+  if(document.getElementById('display-mac-expired'))
+    document.getElementById('display-mac-expired').textContent = deviceId;
+
+  try {
+    const r = await fetch(API + '/user-mac?mac=' + encodeURIComponent(deviceId));
+    const d = await r.json();
+
+    if (d.expired) {
+      showScreen('expired');
+      return;
+    }
+
+    if (!d.success || !d.result || d.result.length === 0) {
+      showScreen('not-registered');
+      return;
+    }
+
+    showScreen('activated');
+
+    // Carrega playlist
+    const playlist = d.result[0];
+    setTimeout(() => {
+      if (playlist.type === 'm3u8' || playlist.url) {
+        loadM3U8(playlist.url);
+      } else {
+        loadXtream(playlist.url, playlist.username, playlist.password);
+      }
+    }, 1500);
+
+  } catch(e) {
+    showScreen('error');
+  }
+}
+
+function loadXtream(url, user, pass) {
+  if (window.Android && window.Android.loadXtream) {
+    window.Android.loadXtream(url, user, pass);
+  } else {
+    document.querySelector('#screen-activated .status:last-of-type').textContent = 
+      'DNS: ' + url + ' | User: ' + user;
+  }
+}
+
+function loadM3U8(url) {
+  if (window.Android && window.Android.loadM3U8) {
+    window.Android.loadM3U8(url);
+  } else {
+    document.querySelector('#screen-activated .status:last-of-type').textContent = 
+      'M3U8: ' + url;
+  }
+}
+
+checkDevice();
+</script>
+</body>
+</html>
