@@ -152,7 +152,7 @@ app.get("/user-mac", (req, res) => {
     
     db.query("SELECT * FROM users WHERE mac=?", [mac], (err, result) => {
         if (err || result.length === 0) {
-            return res.json({ success: false, result: [] });
+            return res.json({ success: false, mac_address: mac, device_key: mac, result: [] });
         }
         const u = result[0];
         
