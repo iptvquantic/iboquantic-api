@@ -226,3 +226,13 @@ app.use((req, res, next) => {
     console.log(`${req.method} ${req.path} - Body: ${JSON.stringify(req.body)} - Query: ${JSON.stringify(req.query)}`);
     next();
 });
+
+// Captura tudo que o app manda para playlist
+app.post("/ibo/a/getplaylist.php", (req, res) => {
+    console.log("PLAYLIST REQUEST:", JSON.stringify(req.body));
+    res.json({ success: false });
+});
+app.post("/playlist", (req, res) => {
+    console.log("PLAYLIST2 REQUEST:", JSON.stringify(req.body));
+    res.json({ success: false });
+});
